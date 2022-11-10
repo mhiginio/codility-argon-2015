@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class SolutionTest {
     private final Solution solution = new Solution();
 
+
     @Test
     void test_11010011_should_return_7() {
         assertEquals(7, solution.solution(new int[]{1, 1, 0, 1, 0, 0, 1, 1}));
@@ -46,21 +47,21 @@ class SolutionTest {
 
     @Test
     void test_1000100000_should_return_5() {
-        int[] test = new int[]{1,0,0,0,1,0,0,0,0,0};
+        int[] test = new int[]{1, 0, 0, 0, 1, 0, 0, 0, 0, 0};
         assertEquals(5, solution.solution(test));
     }
 
-//    @Test
-    void one_hundred_random_tests() {
-        for (int test = 0; test < 100; test++) {
-            int SIZE = 100;
-            int[] random = new int[SIZE];
-            for (int i = 0; i < random.length; i++) {
-                random[i] = Math.random() > 0.5 ? 1 : 0;
-            }
-            Collector<CharSequence, ?, String> joining = Collectors.joining(",", "int[] test = new int[]{", "};");
-            System.out.println(Arrays.stream(random).mapToObj(Integer::toString).collect(joining));
-            solution.solution(random);
-        }
-    }
+//       @Test
+//    void one_hundred_random_tests() {
+//        for (int test = 0; test < 1000; test++) {
+//            int SIZE = 10000;
+//            int[] random = new int[SIZE];
+//            for (int i = 0; i < random.length; i++) {
+//                random[i] = Math.random() > 0.5 ? 1 : 0;
+//            }
+//            Collector<CharSequence, ?, String> joining = Collectors.joining(",", "int[] test = new int[]{", "};");
+//            System.out.println(Arrays.stream(random).mapToObj(Integer::toString).collect(joining));
+//            solution.solution(random);
+//        }
+//    }
 }

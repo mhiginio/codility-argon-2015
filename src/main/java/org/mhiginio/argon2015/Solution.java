@@ -1,21 +1,18 @@
 package org.mhiginio.argon2015;
 
-import java.util.stream.IntStream;
+import java.util.LinkedList;
 
 class Solution {
     private static final int SEASIDE = 0;
-    private static final int MOUNTAIN = 1;
+
     private int[] days;
     private IndexInformation index;
 
     public int solution(int[] days) {
         this.days = days;
-        index = computeIndex();
+        computeIndex();
         int maxDays = 0;
-        for (int cutPoint = 1; cutPoint < days.length; cutPoint++) {
-            if (index.freqFromBeginning[cutPoint][SEASIDE] == 0 || index.freqFromBeginning[cutPoint][MOUNTAIN] == 0) {
-                continue;
-            }
+        for (Integer cutPoint : index.cutPoints) {
             int maxSeaside = maxSeasideDays(cutPoint);
             if (maxSeaside == 0) {
                 continue;
@@ -32,32 +29,53 @@ class Solution {
         return maxDays;
     }
 
-    private IndexInformation computeIndex() {
-        IndexInformation result = new IndexInformation(days.length);
-        result.freqFromBeginning = iterate(IntStream.range(0, days.length));
-        result.freqToEnd = iterate(IntStream.range(0, days.length).map(i -> days.length - i - 1));
-        return result;
+    private void computeIndex() {
+        index = new IndexInformation(days.length);
+        indexFromBeginning();
+        indexToEnd();
     }
 
-    private int[][] iterate(IntStream range) {
-        int[] counters = new int[2];
-        int[][] result = new int[days.length][2];
-
-        range.forEach(i -> {
+    private void indexFromBeginning() {
+        int lastWeather = days[0];
+        for (int i = 0; i < days.length; i++) {
             int weather = days[i];
-            counters[weather]++;
-            int[] copy = new int[2];
-            System.arraycopy(counters, 0, copy, 0, 2);
-            result[i] = copy;
-        });
-        return result;
+            if (weather == SEASIDE) {
+                index.seasideMinusMountainFromBeginning[i] =
+                        i - 1 < 0 ? 1 : index.seasideMinusMountainFromBeginning[i - 1] + 1;
+            } else {
+                index.seasideMinusMountainFromBeginning[i] =
+                        i - 1 < 0 ? -1 : index.seasideMinusMountainFromBeginning[i - 1] - 1;
+            }
+            if (weather != lastWeather) {
+                // If a solution splits a sequence of the same value between seaside / mountain periods
+                // We can obtain another solution of the same length which doesn't split the sequence
+                // So we don't need to check the points inside these chains. Example:
+                // <things>111 |here start mountain period| 111<otherthings>
+                // Then <things>|here start mountain period|111111<otherthings> is a solution as well.
+                index.cutPoints.add(i);
+                lastWeather = weather;
+            }
+        }
+    }
+
+    private void indexToEnd() {
+        for (int i = days.length - 1; i >= 0; i--) {
+            int weather = days[i];
+            if (weather == SEASIDE) {
+                index.seasideMinusMountainToEnd[i] =
+                        i + 1 >= days.length ? 1 : index.seasideMinusMountainToEnd[i + 1] + 1;
+            } else {
+                index.seasideMinusMountainToEnd[i] =
+                        i + 1 >= days.length ? -1 : index.seasideMinusMountainToEnd[i + 1] - 1;
+            }
+        }
     }
 
     private int maxSeasideDays(int cutPoint) {
         for (int i = 0; i < cutPoint; i++) {
             int difference = seasideMinusMountainsDaysBetween(i, cutPoint);
             if (difference < 0) {
-                i = i - difference - 1;
+                i = i - difference;
             } else if (difference > 0) {
                 return cutPoint - i;
             }
@@ -67,19 +85,18 @@ class Solution {
 
     private int seasideMinusMountainsDaysBetween(int init, int cutPoint) {
         if (init == 0) {
-            return index.freqFromBeginning[cutPoint - 1][SEASIDE] -
-                    index.freqFromBeginning[cutPoint - 1][MOUNTAIN];
+            return index.seasideMinusMountainFromBeginning[cutPoint - 1];
         }
-        return index.freqFromBeginning[cutPoint - 1][SEASIDE] - index.freqFromBeginning[init - 1][SEASIDE] -
-                (index.freqFromBeginning[cutPoint - 1][MOUNTAIN] - index.freqFromBeginning[init - 1][MOUNTAIN]);
+        return index.seasideMinusMountainFromBeginning[cutPoint - 1] -
+                index.seasideMinusMountainFromBeginning[init - 1];
     }
 
 
     private int maxMountainDays(int cutPoint) {
-        for (int i = days.length; i >cutPoint; i--) {
+        for (int i = days.length; i > cutPoint; i--) {
             int difference = mountainMinusSeasideDaysBetween(cutPoint, i);
             if (difference < 0) {
-                i = i + difference + 1;
+                i = i + difference;
             } else if (difference > 0) {
                 return i - cutPoint;
             }
@@ -89,20 +106,19 @@ class Solution {
 
     private int mountainMinusSeasideDaysBetween(int cutPoint, int end) {
         if (end == days.length) {
-            return index.freqToEnd[cutPoint][MOUNTAIN] -
-                    index.freqToEnd[cutPoint][SEASIDE];
+            return -index.seasideMinusMountainToEnd[cutPoint];
         }
-        return index.freqToEnd[cutPoint][MOUNTAIN] - index.freqToEnd[end][MOUNTAIN] -
-                (index.freqToEnd[cutPoint][SEASIDE] - index.freqToEnd[end][SEASIDE]);
+        return index.seasideMinusMountainToEnd[end] - index.seasideMinusMountainToEnd[cutPoint];
     }
 
     private static class IndexInformation {
-        private int[][] freqFromBeginning;
-        private int[][] freqToEnd;
+        private final int[] seasideMinusMountainFromBeginning;
+        private final int[] seasideMinusMountainToEnd;
+        private final LinkedList<Integer> cutPoints = new LinkedList<>();
 
         public IndexInformation(int length) {
-            freqFromBeginning = new int[length][2];
-            freqToEnd = new int[length][2];
+            seasideMinusMountainFromBeginning = new int[length];
+            seasideMinusMountainToEnd = new int[length];
         }
     }
 }
